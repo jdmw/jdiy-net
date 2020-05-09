@@ -8,7 +8,7 @@ import java.util.Objects;
 
 @Data
 @Slf4j
-public class HttpBaseResponseInfo implements HttpBaseInfo {
+public class HttpResponseBaseInfo implements HttpBaseInfo {
 
     String version ;
     Integer statusCode ;

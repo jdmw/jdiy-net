@@ -25,7 +25,7 @@ public class HttpRequestDatagramTest {
         String queryString = "a=1&b=2" ;
         LocalConnection connection = new LocalConnection(queryString.length());
 
-        HttpBaseRequestInfo requestBaseInfo = new HttpBaseRequestInfo();
+        HttpRequestBaseInfo requestBaseInfo = new HttpRequestBaseInfo();
         requestBaseInfo.setRequestMethod(HttpMethod.POST.name());
         requestBaseInfo.setRequestVersion(HttpProtocol.HttpVersion.HTTP_1_1.getVersion());
         requestBaseInfo.setRequestURIPath("/");
@@ -54,7 +54,7 @@ public class HttpRequestDatagramTest {
         Socket socket = new Socket(host,80);
         OutputStream os = socket.getOutputStream() ;
 
-        HttpBaseRequestInfo requestBaseInfo = new HttpBaseRequestInfo();
+        HttpRequestBaseInfo requestBaseInfo = new HttpRequestBaseInfo();
         requestBaseInfo.setRequestMethod(HttpMethod.GET.name());
         requestBaseInfo.setRequestVersion(HttpVersion.HTTP_1_1.getVersion());
         requestBaseInfo.setRequestURIPath("/");

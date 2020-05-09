@@ -4,7 +4,7 @@ import jd.util.Assert;
 import lombok.Data;
 
 @Data
-public class HttpBaseRequestInfo implements HttpBaseInfo {
+public class HttpRequestBaseInfo implements HttpBaseInfo {
     String requestMethod ;
     String requestURIPath ;
     String requestURIQuery ;
@@ -17,6 +17,14 @@ public class HttpBaseRequestInfo implements HttpBaseInfo {
         String requestURI = args[1];
         requestVersion = args[2];
         setRequestURI(requestURI);
+    }
+
+    public static HttpRequestBaseInfo of(HttpDatagram datagram){
+        Assert.notNull(datagram);
+        Assert.notBlank(datagram.getFirstLine());
+        HttpRequestBaseInfo HttpRequestBaseInfo = new HttpRequestBaseInfo();
+        HttpRequestBaseInfo.parse(datagram.getFirstLine());
+        return HttpRequestBaseInfo;
     }
 
     public String toString() {

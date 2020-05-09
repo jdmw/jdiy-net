@@ -14,6 +14,7 @@
         <module>diy-net-ftp-client</module>
         <module>diy-net-connector</module>
         <module>diy-net-app-proxy</module>
+        <module>diy-net-servlet</module>
     </modules>
 
     <dependencies>

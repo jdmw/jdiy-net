@@ -41,7 +41,7 @@ public class HttpDatagram implements Datagram {
         return ProtocolNames.HTTP.name();
     }
 
-    public HttpDatagram firstLine(HttpBaseRequestInfo requestBaseInfo){
+    public HttpDatagram firstLine(HttpRequestBaseInfo requestBaseInfo){
         return firstLine(requestBaseInfo.toString());
     }
     public HttpDatagram firstLine(String firstLine){
