@@ -11,16 +11,9 @@ public class NetServletConstants {
 
     public static final String HTTPS = "https";
 
-    public static final String HOST_HEADER = "Host";
-
-    public static final String CHARSET_PREFIX = "charset=";
-
-    public static final String LOCATION_HEADER = "Location";
-
     public static final String DATE_FORMAT = "EEE, dd MMM yyyy HH:mm:ss zzz";
 
     public static final TimeZone GMT = TimeZone.getTimeZone("GMT");
-
 
     /**
      * Date formats as specified in the HTTP RFC

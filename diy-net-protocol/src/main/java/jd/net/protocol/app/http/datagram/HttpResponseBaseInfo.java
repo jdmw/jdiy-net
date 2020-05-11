@@ -1,18 +1,23 @@
 package jd.net.protocol.app.http.datagram;
 
+import jd.net.protocol.common.datagram.ResponseBaseInfo;
 import jd.util.Assert;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Objects;
 
-@Data
+@Getter
+@Setter
 @Slf4j
-public class HttpResponseBaseInfo implements HttpBaseInfo {
+public class HttpResponseBaseInfo extends ResponseBaseInfo implements HttpBaseInfo {
 
     String version ;
-    Integer statusCode ;
-    String statusText ;
+    protected Integer statusCode ;
+    // the descriptive message
+    protected String statusText ;
 
     @Override
     public void parse(String firstLine) {

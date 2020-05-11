@@ -4,54 +4,62 @@ import jd.net.protocol.app.http.datagram.HttpRequestBaseInfo;
 import jd.net.protocol.app.http.datagram.HttpDatagram;
 import jd.net.protocol.app.http.datagram.cst.HttpHeader;
 import jd.server.context.sevlet.container.attrctn.ServletRequestAttributeContainer;
-import jd.server.context.sevlet.datagram.HttpHeadersHolder;
-import jd.server.context.sevlet.datagram.ServletSettings;
+import jd.server.context.sevlet.datagram.HttpRequestHeadersHolder;
+import jd.server.context.sevlet.datagram.ServletInputStreamHolder;
+import jd.server.context.sevlet.loader.ContextConfiguration;
+import jd.util.StrUt;
+import jd.util.io.net.NetResourceLocationUtil;
 import jd.util.lang.collection.MultiValueMap;
+import jd.util.lang.collection.ObjArrayMap;
 import jd.util.lang.concurrent.ThreadSafeVar;
+import lombok.Data;
 
 import javax.servlet.*;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
 
+@Data
 public class CommonServletRequest implements ServletRequest {
 
+	private String protocol = "HTTP" ;
+	private String scheme = protocol ;
+
 	private final ServletRequestAttributeContainer attrCtx;
-	private final ServletContext sc ;
-	private final HttpDatagram httpDatagram ;
-	private final HttpHeadersHolder headersHolder ;
-	private final ServletSettings servletSettings ;
-	private final HttpRequestBaseInfo requestBaseInfo ;
-	
-	private String characterEncoding ;
-	private Vector<Locale> locales ;
-	
+	protected final ServletContext servletContext ;
+	protected final HttpDatagram httpDatagram ;
+	protected final ContextConfiguration servletSettings ;
+	protected final HttpRequestBaseInfo requestBaseInfo ;
+	protected final ServletInputStreamHolder servletInputStreamHolder ;
+	protected final HttpRequestHeadersHolder headersHolder ;
+	private  volatile ObjArrayMap<String,String> parameterMap ;
+
 	private final ThreadSafeVar<Boolean> supportAsync =  new ThreadSafeVar<>(false) ;
 	private final ThreadSafeVar<Boolean> asyncStarted =  new ThreadSafeVar<>(false) ;
 	private final ThreadSafeVar<Boolean> isSecure =  new ThreadSafeVar<>(false) ;
+	private final ThreadSafeVar<String> characterEncoding ;
 
-	protected CommonServletRequest(HttpDatagram httpDatagram ,ServletSettings servletSettings, ServletContext ctx,List<ServletRequestAttributeListener> lis) {
-		attrCtx = new ServletRequestAttributeContainer(ctx,this,lis);
-		this.sc = ctx ;
+	protected CommonServletRequest(HttpDatagram httpDatagram , DefaultServletContext ctx) {
+		attrCtx = new ServletRequestAttributeContainer(ctx,this,ctx.getCfg().getRequestAttributeListener());
+		this.servletContext = ctx ;
 		this.httpDatagram = httpDatagram ;
 		this.requestBaseInfo = HttpRequestBaseInfo.of(httpDatagram);
-		this.servletSettings = servletSettings;
-		this.headersHolder = new HttpHeadersHolder(Optional.ofNullable(httpDatagram.getHeaderAll()).orElseGet(()->new MultiValueMap<>()));
-		this.characterEncoding = servletSettings.getDefaultRequestEncoding();
-
+		this.servletSettings = ctx.getCfg();
+		this.headersHolder = new HttpRequestHeadersHolder(Optional.ofNullable(httpDatagram.getHeaderAll()).orElseGet(()->new MultiValueMap<>()));
+		this.characterEncoding = new ThreadSafeVar(servletSettings.getDefaultRequestEncoding());
+		this.servletInputStreamHolder = new ServletInputStreamHolder(httpDatagram,characterEncoding);
 	}
 	
 	
 	@Override
 	public String getCharacterEncoding() {
-		return characterEncoding;
+		return characterEncoding.getValue();
 	}
 
 	@Override
-	public void setCharacterEncoding(String env) throws UnsupportedEncodingException {
-		this.characterEncoding = env ;
+	public void setCharacterEncoding(String encoding) throws UnsupportedEncodingException {
+		this.characterEncoding.setValue(encoding); ;
 	}
 
 	@Override
@@ -66,88 +74,93 @@ public class CommonServletRequest implements ServletRequest {
 
 	@Override
 	public Locale getLocale() {
-		//TODO
-		return getLocales().nextElement();
+		return headersHolder.getLocales(servletSettings.getDefaultLocale()).get(0);
 	}
 
 	@Override
 	public Enumeration<Locale> getLocales() {
-		if(locales == null) {
-			Enumeration<String> headers = httpDatagram.getHeaders(HttpHeader.HeaderName.ACCEPT_LANGUAGE);
-			locales = HttpHeaderUtil.getAcceptLocales(headers);
-		}
-		return locales.isEmpty() ? new Vector<Locale>(Arrays.asList(servletSettings.getDefaultLocale())).elements(): locales.elements();
+		return headersHolder.getLocales(servletSettings.getDefaultLocale()).elements();
 	}
 
 	@Override
 	public boolean isSecure() {
-		return isSecure.getValue();
+		return "HTTPS".equalsIgnoreCase(getScheme());
 	}
+
 
 	@Override
 	public ServletInputStream getInputStream() throws IOException {
-		final InputStream is = super.getIs() ;
-		return new ServletInputStream() {
-			@Override
-			public int read() throws IOException {
-				return is.read();
-			}
-		};
+		return servletInputStreamHolder.getInputStream();
 	}
 
 	@Override
 	public String getParameter(String s) {
-		return null;
+		return getParameterMap().getParameter(s);
 	}
 
 	@Override
 	public Enumeration getParameterNames() {
-		return null;
+		return getParameterMap().getParameterNames();
 	}
 
 	@Override
-	public String[] getParameterValues(String s) {
-		return new String[0];
+	public String[] getParameterValues(String name) {
+		return getParameterMap().get(name);
 	}
 
 	@Override
-	public Map getParameterMap() {
-		return null;
+	public ObjArrayMap<String,String> getParameterMap() {
+		if(parameterMap == null){
+			ObjArrayMap<String,String> map = NetResourceLocationUtil.parseQueryString(requestBaseInfo.getRequestURIQuery(),characterEncoding.getValue());
+			if(map == null){
+				map = new ObjArrayMap<>();
+			}
+			synchronized (this){
+				parameterMap = map ;
+			}
+		}
+		return parameterMap;
 	}
+
+
 
 	@Override
 	public String getProtocol() {
-		return null;
+		return protocol;
 	}
 
 	@Override
 	public String getScheme() {
-		return null;
+		return scheme;
 	}
 
 	@Override
 	public String getServerName() {
-		return null;
+		return servletSettings.getServerSettings().getServerName() ;
 	}
 
 	@Override
 	public int getServerPort() {
-		return 0;
+		return httpDatagram.getLowerDatagram().getLocalPort();
 	}
 
 	@Override
 	public BufferedReader getReader() throws IOException {
-		return null;
+		return servletInputStreamHolder.getReader();
 	}
 
 	@Override
 	public String getRemoteAddr() {
-		return null;
+		return httpDatagram.getLowerDatagram().getRemoteAddress().getHostAddress();
 	}
 
 	@Override
 	public String getRemoteHost() {
-		return null;
+		String header = this.headersHolder.getHeader(HttpHeader.HeaderName.HOST);
+		if(StrUt.isBlank(header)){
+			header =  httpDatagram.getLowerDatagram().getRemoteAddress().getHostName();
+		}
+		return header;
 	}
 
 
@@ -168,7 +181,6 @@ public class CommonServletRequest implements ServletRequest {
 	@Override
 	public void setAttribute(String name, Object o) {
 		attrCtx.setAttribute(name, o);
-		
 	}
 
 	@Override
@@ -202,17 +214,17 @@ public class CommonServletRequest implements ServletRequest {
 
 	@Override
 	public int getRemotePort() {
-		return 0;
+		return httpDatagram.getLowerDatagram().getRemotePort();
 	}
 
 	@Override
 	public String getLocalName() {
-		return null;
+		return httpDatagram.getLowerDatagram().getLocalAddress().getHostName();
 	}
 
 	@Override
 	public String getLocalAddr() {
-		return null;
+		return NetResourceLocationUtil.getIpStringFromBytes(httpDatagram.getLowerDatagram().getLocalAddress().getAddress());
 	}
 
 	@Override
@@ -250,10 +262,6 @@ public class CommonServletRequest implements ServletRequest {
 	public AsyncContext getAsyncContext() {
 		// TODO Auto-generated method stub
 		return null;
-	}
-
-	public ServletContext getServletContext() {
-		return sc;
 	}
 
 

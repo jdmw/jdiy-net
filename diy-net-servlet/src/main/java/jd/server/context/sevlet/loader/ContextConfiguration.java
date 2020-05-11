@@ -1,8 +1,9 @@
 package jd.server.context.sevlet.loader;
 
-import java.util.EventListener;
-import java.util.List;
-import java.util.Set;
+import jd.server.context.sevlet.ServerSettings;
+import lombok.Getter;
+
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -18,7 +19,24 @@ import javax.servlet.http.HttpSessionBindingListener;
 import javax.servlet.http.HttpSessionIdListener;
 import javax.servlet.http.HttpSessionListener;
 
+@Getter
 public class ContextConfiguration {
+
+	private String defaultRequestEncoding = "utf-8";
+	private String defaultResponseEncoding = "utf-8";
+	private Locale defaultLocale = Locale.getDefault() ;
+	private String servletContextName ;
+	private final Hashtable<String,String> initParams = new Hashtable<>();
+
+	private final ServerSettings serverSettings;
+	public ContextConfiguration() {
+		this(new ServerSettings());
+	}
+
+
+	public ContextConfiguration(ServerSettings serverSettings) {
+		this.serverSettings = serverSettings;
+	}
 
 	protected final Set<Class<? extends Filter>> filterClasses = new CopyOnWriteArraySet<>();
 	protected final Set<Class<? extends Servlet>> ServletClasses = new CopyOnWriteArraySet<>();
@@ -30,7 +48,7 @@ public class ContextConfiguration {
 	protected final List<EventListener> listeners = new CopyOnWriteArrayList<>();
 
 	protected final List<DefaultServletConfig> servletConfigs = new CopyOnWriteArrayList<>();
-	
+	protected final Map<String,String> authUserAndPasswordMap = new Hashtable<>();
 	protected final List<ServletContextListener> 			servletContextListeners = new CopyOnWriteArrayList<>();
 	protected final List<ServletContextAttributeListener> 	servletContextAttrListeners = new CopyOnWriteArrayList<>();
 	
@@ -66,47 +84,4 @@ public class ContextConfiguration {
 		}
 	}
 
-	public List<ServletContextListener> getServletContextListeners() {
-		return servletContextListeners;
-	}
-
-	public List<ServletContextAttributeListener> getServletContextAttrListeners() {
-		return servletContextAttrListeners;
-	}
-
-	public List<HttpSessionListener> getSessionListeners() {
-		return sessionListeners;
-	}
-
-	public List<HttpSessionAttributeListener> getSessionAttributeListener() {
-		return sessionAttributeListener;
-	}
-
-	public List<HttpSessionBindingListener> getSessionBindingListener() {
-		return sessionBindingListener;
-	}
-
-	public List<HttpSessionIdListener> getSessionIdListener() {
-		return sessionIdListener;
-	}
-
-	public List<HttpSessionActivationListener> getSessionActivationListener() {
-		return sessionActivationListener;
-	}
-
-	public List<ServletRequestListener> getRequestListener() {
-		return requestListener;
-	}
-
-	public List<ServletRequestAttributeListener> getRequestAttributeListener() {
-		return requestAttributeListener;
-	}
-
-	public Set<Class<? extends Filter>> getFilterClasses() {
-		return filterClasses;
-	}
-
-	public Set<Class<? extends EventListener>> getListenerClasses() {
-		return ListenerClasses;
-	}
 }

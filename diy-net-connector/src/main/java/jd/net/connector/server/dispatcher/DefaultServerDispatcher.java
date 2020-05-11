@@ -6,6 +6,8 @@ import jd.util.ArrUt;
 import jd.util.lang.collection.MultiLevelMap;
 import jd.util.lang.collection.MultiValueMap;
 
+import java.io.IOException;
+
 public class DefaultServerDispatcher<K> implements IServerDispatcher {
 
     final MultiLevelMap<K,IProcessor> processors = new MultiLevelMap<>();
@@ -30,7 +32,7 @@ public class DefaultServerDispatcher<K> implements IServerDispatcher {
     }
 
     @Override
-    public void dispatch(NetConnection netConnection, Datagram datagram) {
+    public void dispatch(NetConnection netConnection, Datagram datagram) throws IOException {
         K[] mapping = datagramMapper.mapping(datagram);
         IProcessor processor = matchAnyProcess ;
         if(mapping != null || mapping.length >0){

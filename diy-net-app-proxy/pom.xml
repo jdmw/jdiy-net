@@ -12,5 +12,17 @@
     <groupId>jd.net</groupId>
     <artifactId>diy-net-app-proxy</artifactId>
 
+    <dependencies>
+        <dependency>
+            <groupId>jd.net</groupId>
+            <artifactId>diy-net-connector</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>jd.net</groupId>
+            <artifactId>diy-net-protocol</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
 
 </project>

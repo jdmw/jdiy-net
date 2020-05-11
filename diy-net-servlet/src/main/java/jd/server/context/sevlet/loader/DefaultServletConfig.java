@@ -1,13 +1,18 @@
 package jd.server.context.sevlet.loader;
 
+import com.sun.org.apache.xml.internal.utils.WrappedRuntimeException;
+import jd.util.lang.reflect.ReflectUt;
+import lombok.Data;
+
+import java.io.IOException;
+import java.io.WriteAbortedException;
 import java.util.Enumeration;
 import java.util.Hashtable;
 
-import javax.servlet.Servlet;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
+import javax.servlet.*;
 import javax.servlet.http.HttpServlet;
 
+@Data
 public class DefaultServletConfig implements ServletConfig {
 
 	private String displayName ;
@@ -22,18 +27,57 @@ public class DefaultServletConfig implements ServletConfig {
 	private String smallIcon ;
 	private String	description;
 	
-	private final ServletContext sc ;
+	private final ServletContext servletContext ;
 	
 	private boolean isJsp ;
 	private String classname;
 	private String jsp ;
-	private Class<? extends HttpServlet> servletClass ;
-	private Servlet servlet ;
-	
+	private Class<? extends Servlet> servletClass ;
+	private Servlet servlet = new ServletProxy();
+
+	private class ServletProxy implements Servlet {
+		boolean init = false ;
+		Servlet httpServlet ;
+		@Override
+		public void init(ServletConfig config) throws ServletException {
+			if(!init){
+				try {
+					httpServlet = servletClass.newInstance();
+					httpServlet.init(config);
+				} catch (InstantiationException|IllegalAccessException e) {
+					throw new WrappedRuntimeException(e);
+				}
+			}
+			init = true ;
+		}
+
+		@Override
+		public ServletConfig getServletConfig() {
+			return DefaultServletConfig.this;
+		}
+
+		@Override
+		public void service(ServletRequest req, ServletResponse res) throws ServletException, IOException {
+			if(!init){
+				init(getServletConfig());
+			}
+			httpServlet.service(req,res);
+		}
+
+		@Override
+		public String getServletInfo() {
+			return httpServlet.getServletInfo();
+		}
+
+		@Override
+		public void destroy() {
+			httpServlet.destroy();
+		}
+	}
 	private Hashtable<String,String> initParams = new Hashtable<>();
 	
-	private DefaultServletConfig(ServletContext sc) {
-		this.sc = sc ;
+	public DefaultServletConfig(ServletContext sc) {
+		this.servletContext = sc ;
 	}
 
 	public static DefaultServletConfig owner(ServletContext sc) {
@@ -49,21 +93,6 @@ public class DefaultServletConfig implements ServletConfig {
 		this.jsp = jsp;
 		this.isJsp = true;
 	}
-	
-	
-	public Class<? extends HttpServlet> getServletClass() {
-		return servletClass;
-	}
-	
-	@Override
-	public String getServletName() {
-		return servletName;
-	}
-
-	@Override
-	public ServletContext getServletContext() {
-		return sc;
-	}
 
 	@Override
 	public String getInitParameter(String name) {
@@ -75,93 +104,8 @@ public class DefaultServletConfig implements ServletConfig {
 		return initParams.keys();
 	}
 
-	public String getDisplayName() {
-		return displayName;
-	}
-
-	public String[] getUrlPattern() {
-		return urlPattern;
-	}
-
-	public boolean isAsyncSupported() {
-		return asyncSupported;
-	}
-
-	public int getLoadOnStartup() {
-		return loadOnStartup;
-	}
-
-	public String getLargeIcon() {
-		return largeIcon;
-	}
-
-	public String getSmallIcon() {
-		return smallIcon;
-	}
-
-	public String getDescription() {
-		return description;
-	}
-
-
-	public boolean isJsp() {
-		return isJsp;
-	}
-
-	public String getClassname() {
-		return classname;
-	}
-
-	public String getJsp() {
-		return jsp;
-	}
-
-	public Servlet getServlet() {
-		return servlet;
-	}
-
-	public Hashtable<String, String> getInitParams() {
-		return initParams;
-	}
-
-	public void setDisplayName(String displayName) {
-		this.displayName = displayName;
-	}
-
-	public void setServletName(String servletName) {
-		this.servletName = servletName;
-	}
-
-	public void setUrlPattern(String[] urlPattern) {
-		this.urlPattern = urlPattern;
-	}
-
-	public void setAsyncSupported(boolean asyncSupported) {
-		this.asyncSupported = asyncSupported;
-	}
-
-	public void setLoadOnStartup(int loadOnStartup) {
-		this.loadOnStartup = loadOnStartup;
-	}
-
-	public void setLargeIcon(String largeIcon) {
-		this.largeIcon = largeIcon;
-	}
-
-	public void setSmallIcon(String smallIcon) {
-		this.smallIcon = smallIcon;
-	}
-
-	public void setDescription(String description) {
-		this.description = description;
-	}
-
 	public void setServletClass(Class<? extends HttpServlet>servletClass) {
 		this.servletClass = servletClass;
-	}
-
-	public void setServlet(Servlet servlet) {
-		this.servlet = servlet;
 	}
 
 	public void putInitParam(String name,String value) {

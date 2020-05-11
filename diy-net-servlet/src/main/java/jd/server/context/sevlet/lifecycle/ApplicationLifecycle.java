@@ -96,6 +96,7 @@ public class ApplicationLifecycle implements LifeCycle {
 	public void onDestroy() {
 		// notify servletContextListeners
 		ServletContextEvent event = new ServletContextEvent(ctx);
+		cfg.getServlets().forEach(servlet -> servlet.destroy());
 		cfg.getServletContextListeners().forEach(lis->lis.contextDestroyed(event));
 	}
 

@@ -2,6 +2,8 @@ package jd.net.protocol.app.http.datagram.cst;
 
 public class HttpHeader {
 
+
+
     public static final class HeaderName {
         public static final String ACCEPT = "accept";
         public static final String ACCEPT_CHARSET = "accept-charset";
@@ -85,6 +87,17 @@ public class HttpHeader {
         public static final String WEBSOCKET_PROTOCOL = "websocket-protocol";
         public static final String WWW_AUTHENTICATE = "www-authenticate";
     }
+
+    /*    public static final class CommonHeaderNames {
+
+    }
+    public static final class RequestHeaderNames {
+
+    }
+    public static final class ResponseHeaderNames {
+
+    }*/
+
 
     public static class Connection {
         public static final String NAME = "Connection" ;

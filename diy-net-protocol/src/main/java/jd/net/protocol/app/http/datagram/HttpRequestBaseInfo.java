@@ -6,6 +6,7 @@ import lombok.Data;
 @Data
 public class HttpRequestBaseInfo implements HttpBaseInfo {
     String requestMethod ;
+    String requestURI ;
     String requestURIPath ;
     String requestURIQuery ;
     String requestVersion ;
@@ -14,9 +15,8 @@ public class HttpRequestBaseInfo implements HttpBaseInfo {
     public void parse(String line) {
         String[] args = line.split(" ");
         requestMethod = args[0];
-        String requestURI = args[1];
         requestVersion = args[2];
-        setRequestURI(requestURI);
+        setRequestURI(args[1]);
     }
 
     public static HttpRequestBaseInfo of(HttpDatagram datagram){
@@ -32,14 +32,8 @@ public class HttpRequestBaseInfo implements HttpBaseInfo {
         return (requestMethod + " " +  getRequestURI() + " " + requestVersion);
     }
 
-    private String getRequestURI(){
-        if(requestURIQuery != null && requestURIQuery.length() > 0 ){
-            return requestURIPath + "?" + requestURIQuery;
-        }else {
-            return requestURIPath;
-        }
-    }
-    private void setRequestURI(String requestURI ){
+    public void setRequestURI(String requestURI ){
+        this.requestURI = requestURI;
         int index = requestURI.indexOf("?");
         if( index != -1 ){
             requestURIPath = requestURI.substring(0,index);

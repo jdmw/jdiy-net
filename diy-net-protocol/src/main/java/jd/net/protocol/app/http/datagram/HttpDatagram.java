@@ -49,7 +49,7 @@ public class HttpDatagram implements Datagram {
         return this;
     }
     @Override
-    public HttpDatagram attach(NetConnection netConnection) throws IOException {
+    public HttpDatagram attach(NetConnection netConnection) {
         this.netConnection = netConnection ;
         return this;
     }
@@ -106,6 +106,12 @@ public class HttpDatagram implements Datagram {
         return new Integer(value);
     }
 
+    public static HttpDatagram read(NetConnection connection) throws IOException {
+        HttpDatagram datagram = new HttpDatagram();
+        datagram.attach(connection);
+        datagram.read();
+        return datagram ;
+    }
     @Override
     public void write() throws IOException {
         netConnection.write(firstLine.getBytes());

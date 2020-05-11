@@ -3,30 +3,28 @@ package jd.server.context.sevlet;
 import java.io.IOException;
 import java.security.Principal;
 import java.util.Collection;
+import java.util.Enumeration;
 import java.util.List;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequestAttributeListener;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import javax.servlet.http.Part;
+import javax.servlet.http.*;
 
-import jd.server.protocol.RawResponseMessage;
+import jd.net.protocol.app.http.datagram.HttpDatagram;
+import jd.net.protocol.app.http.datagram.cst.HttpHeader;
 import jd.server.context.sevlet.container.DefaultHttpSession;
 import jd.server.context.sevlet.container.DefaultSessionContext;
 import jd.util.StrUt;
 
 public class DefaultHttpServletRequest extends CommonServletRequest implements HttpServletRequest {
 
-	private final DefaultSessionContext sessctx; 
 	private final DefaultHttpServletResponse response ;
-	protected DefaultHttpServletRequest(DefaultSessionContext sessctx, ServletContext ctx,
-			List<ServletRequestAttributeListener> lis,RawResponseMessage resp) {
-		super(ctx, lis);
-		this.sessctx = sessctx ;
-		response = new DefaultHttpServletResponse(this,resp);
+	private final DefaultSessionContext sessionContext ;
+	protected DefaultHttpServletRequest(HttpDatagram httpDatagram , DefaultServletContext servletContext) {
+		super(httpDatagram,servletContext);
+		sessionContext = new DefaultSessionContext(servletContext,servletContext.getCfg());
+		response = new DefaultHttpServletResponse(this,servletContext.getCfg(),httpDatagram);
 	}
 
 	protected DefaultHttpServletResponse getResponse() {
@@ -36,26 +34,28 @@ public class DefaultHttpServletRequest extends CommonServletRequest implements H
 	@Override
 	public String getPathInfo() {
 		// TODO Auto-generated method stub
-		return null;
+		return requestBaseInfo.getRequestURIPath();
 	}
 
 	@Override
 	public String getPathTranslated() {
 		// TODO Auto-generated method stub
-		return null;
+		return getPathInfo();
 	}
 
 	@Override 
 	public String getContextPath() {
-		// TODO Auto-generated method stub
-		// TODO ? It is possible that a servlet container may match a context by more than one
 		return super.getServletContext().getContextPath();
 	}
 
 	@Override
+	public String getQueryString() {
+		return requestBaseInfo.getRequestURIQuery();
+	}
+
+	@Override
 	public String getServletPath() {
-		// TODO Auto-generated method stub
-		return null;
+		return servletContext.getContextPath();
 	}
 
 	public Collection<Part> getParts() throws IOException, ServletException {
@@ -83,19 +83,19 @@ public class DefaultHttpServletRequest extends CommonServletRequest implements H
 	
 	
 	@Override
-	public HttpSession getSession(boolean create) {
+	public DefaultHttpSession getSession(boolean create) {
 		if(response.responseCommitted) {
 			throw new IllegalStateException("the response is committed");
 		}
 		if(currentSession == null) {
 			// TODO ? If the container is using cookies to maintain session integrity and is asked to create a new session when the response is committed, an IllegalStateException is thrown.
 			String requestedSessionId = getRequestedSessionId();
-			currentSession = sessctx.getValiditySession(requestedSessionId);
+			currentSession = sessionContext.getValiditySession(requestedSessionId);
 			if(create && currentSession == null) {
 				if(isRequestedSessionIdFromCookie()) {
 					throw new IllegalStateException("container is using cookies to maintain session integrity,creating a new session is forbidded");
 				}
-				currentSession = sessctx.newSession();
+				currentSession = sessionContext.newSession();
 			}
 			if(currentSession != null) {
 				currentSession.associate();
@@ -121,16 +121,17 @@ public class DefaultHttpServletRequest extends CommonServletRequest implements H
 	@Override
 	public boolean isRequestedSessionIdValid() {
 		String id = getRequestedSessionId();
-		return id != null ? sessctx.checkValidation(id):false ;
+		return id != null ? sessionContext.checkValidation(id):false ;
 	}
 
 	@Override
 	public String getRequestedSessionId() {
 		if(!sessionIdParsed) {
-			requesedSessionId = super.getCookieMap().get(JSESSIONID);
-			if(StrUt.isNotBlank(requesedSessionId)) {
+			Cookie cookie = headersHolder.getCookie(JSESSIONID);
+			if(cookie != null && StrUt.isNotBlank(requesedSessionId = cookie.getValue())) {
 				sessionIdFromCookie = true ;
 			}else {
+				// TODO use sessionId as a parameter
 				requesedSessionId = super.getParameter(JSESSIONID);
 				if(StrUt.isNotBlank(requesedSessionId)) {
 					sessionIdFromUrl = true ;
@@ -139,7 +140,23 @@ public class DefaultHttpServletRequest extends CommonServletRequest implements H
 		}
 		return requesedSessionId;
 	}
-	
+
+	@Override
+	public String getRequestURI() {
+		return requestBaseInfo.getRequestURIPath();
+	}
+
+	@Override
+	public StringBuffer getRequestURL() {
+		StringBuffer sb = new StringBuffer(getScheme()).append("://");
+		String host = getHeader(HttpHeader.HeaderName.HOST);
+		if(StrUt.isBlank(host)){
+			host = getLocalAddr();
+		}
+		sb.append(host).append(requestBaseInfo.getRequestURIPath());
+		return sb;
+	}
+
 	@Override
 	public boolean isRequestedSessionIdFromCookie() {
 		if(!sessionIdParsed) {
@@ -162,6 +179,41 @@ public class DefaultHttpServletRequest extends CommonServletRequest implements H
 	}
 
 	
+	@Override
+	public Cookie[] getCookies() {
+		return headersHolder.getCookies();
+	}
+
+	@Override
+	public long getDateHeader(String name) {
+		return headersHolder.getDateHeader(name);
+	}
+
+	@Override
+	public String getHeader(String name) {
+		return headersHolder.getHeader(name);
+	}
+
+	@Override
+	public Enumeration getHeaders(String name) {
+		return headersHolder.getHeaders(name).elements();
+	}
+
+	@Override
+	public Enumeration getHeaderNames() {
+		return headersHolder.getHeaderNames().elements();
+	}
+
+	@Override
+	public int getIntHeader(String name) {
+		return headersHolder.getIntHeader(name);
+	}
+
+	@Override
+	public String getMethod() {
+		return requestBaseInfo.getRequestMethod();
+	}
+
 	/******************************************************************
 	 * login mechanism
 	 ******************************************************************/
@@ -182,12 +234,14 @@ public class DefaultHttpServletRequest extends CommonServletRequest implements H
 		// TODO Auto-generated method stub
 		return null;
 	}
- 
+
 	@Override
 	public String getAuthType() {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+
 
 	public boolean authenticate(HttpServletResponse response) throws IOException, ServletException {
 		// TODO Auto-generated method stub
@@ -195,8 +249,8 @@ public class DefaultHttpServletRequest extends CommonServletRequest implements H
 	}
 
 	public void login(String username, String password) throws ServletException {
-		// TODO Auto-generated method stub
-		
+
+		getSession(true).setAttribute("login",true);
 	}
 
 	public void logout() throws ServletException {

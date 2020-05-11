@@ -67,6 +67,16 @@ public class DefaultServerDispatcherTest {
         }
 
         @Override
+        public void init() {
+
+        }
+
+        @Override
+        public void destroy() {
+
+        }
+
+        @Override
         public void process(NetConnection netConnection, Datagram datagram) {
             String url = ((UrlDatagram) datagram).url;
             System.out.printf("process[%s] url= %s \n",name, url);
@@ -75,7 +85,7 @@ public class DefaultServerDispatcherTest {
         }
     }
     @Test
-    public void dispatch() {
+    public void dispatch() throws IOException {
         IDatagramMapper mapper = (Datagram datagram)-> ((UrlDatagram)datagram).url.split("/") ;
         DefaultServerDispatcher dispatcher = new DefaultServerDispatcher(mapper,(netConnection, datagram) ->{
             System.err.println(((UrlDatagram)datagram).url);
