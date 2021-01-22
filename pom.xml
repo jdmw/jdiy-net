@@ -5,17 +5,17 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>jd.net</groupId>
-    <artifactId>diy-net</artifactId>
+    <artifactId>jdiy-net</artifactId>
     <packaging>pom</packaging>
     <version>0.0.1-SNAPSHOT</version>
     <modules>
-        <module>diy-net-protocol</module>
-        <module>diy-net-ftp-server</module>
-        <module>diy-net-ftp-client</module>
-        <module>diy-net-connector</module>
-        <module>diy-net-app-proxy</module>
+        <module>jdiy-net-protocol</module>
+        <module>jdiy-net-ftp-server</module>
+        <module>jdiy-net-ftp-client</module>
+        <module>jdiy-net-connector</module>
+        <module>jdiy-net-app-proxy</module>
 
-        <module>diy-net-servlet</module>
+        <module>jdiy-net-servlet</module>
     </modules>
 
     <dependencies>
